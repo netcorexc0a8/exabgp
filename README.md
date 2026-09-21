@@ -202,6 +202,9 @@ echo "203.0.113.0/24" > lists/local.txt
 
 The `state/` directory persists ExaBGP runtime state between restarts.
 
+The image pre-creates the `run/` directory and named FIFO pipes
+(`exabgp.in`, `exabgp.out`) required by ExaBGP's CLI mode. No action needed.
+
 ### Pull the latest image
 
 ```bash

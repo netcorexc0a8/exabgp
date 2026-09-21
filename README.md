@@ -287,3 +287,94 @@ the intended BGP peer(s).
 
 The Dockerfile pins ExaBGP to `5.0.3` for reproducibility. Change
 `EXABGP_VERSION` after testing a newer release.
+
+## Docker image
+
+A ready-to-run Docker image is built automatically on every push to `main`
+and on every tag. The image is published to the GitHub Container Registry
+(GHCR).
+
+### Pull the latest image
+
+```bash
+docker pull ghcr.io/netcorexc0a8/exabgp:latest
+```
+
+### Run with the published image
+
+```bash
+docker run -d \
+  --name exabgp \
+  --network host \
+  -v "$(pwd)/config/exabgp.conf:/etc/exabgp/exabgp.conf:ro" \
+  -v "$(pwd)/config/sources.json:/etc/exabgp/sources.json:ro" \
+  -v "$(pwd)/fetcher/fetcher.py:/opt/fetcher/fetcher.py:ro" \
+  -v "$(pwd)/lists:/etc/exabgp/lists:ro" \
+  -v "$(pwd)/state:/var/lib/exabgp" \
+  ghcr.io/netcorexc0a8/exabgp:latest
+```
+
+The image uses `network_mode: host` intentionally — see the Important section
+below for details.
+
+### Run with docker compose
+
+The local `docker-compose.yml` builds the image from the current directory.
+To run the published image instead, point the compose file at GHCR:
+
+```bash
+docker compose pull
+docker compose up -d
+docker compose logs -f
+```
+
+Override the image in `docker-compose.yml`:
+
+```yaml
+services:
+  exabgp:
+    image: ghcr.io/netcorexc0a8/exabgp:latest
+    build: null
+    container_name: exabgp
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      EXABGP_LOG_ALL: "true"
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ./config/exabgp.conf:/etc/exabgp/exabgp.conf:ro
+      - ./config/sources.json:/etc/exabgp/sources.json:ro
+      - ./fetcher/fetcher.py:/opt/fetcher/fetcher.py:ro
+      - ./lists:/etc/exabgp/lists:ro
+      - ./state:/var/lib/exabgp
+    command: ["exabgp", "/etc/exabgp/exabgp.conf"]
+```
+
+Or pass the image at the command line without editing the file:
+
+```bash
+docker compose up -d --build
+```
+
+To use a specific tag, replace `latest` with the desired tag (for example
+`v1.0.0` or `sha-a1b2c3d`).
+
+### Build workflow
+
+The build is defined in `.github/workflows/build-image.yml`. It triggers on:
+
+- every push to `main`
+- every tag matching `v*`
+- manual trigger via the Actions UI
+
+The workflow builds the image with Docker Buildx, pushes it to GHCR, and
+tags it as:
+
+- `latest` — on pushes to `main`
+- `sha-<short-sha>` — on every push
+- the tag name — on tag pushes (e.g. `v1.0.0`)
+
+The workflow uses the default `GITHUB_TOKEN` secret, so no extra
+configuration is required. If you want to use the image from a private
+repository, make sure the `packages: write` permission is granted (it is
+set in the workflow file).

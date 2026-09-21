@@ -7,17 +7,19 @@ RUN pip install --no-cache-dir "exabgp==${EXABGP_VERSION}" \
     && mkdir -p /var/lib/exabgp \
     && chown -R exabgp:exabgp /var/lib/exabgp
 
+# Pre-create the named FIFO pipes (exabgp.in, exabgp.out) required by
+# ExaBGP's CLI control socket. ExaBGP's named_pipe() lookup only scans a
+# fixed list of absolute paths (/run/exabgp/, /run/<uid>/, /run/, and the
+# /var/run and $PREFIX equivalents) - it does NOT check the cwd-relative
+# "run/" path shown in its own log hint, so the pipes must live here.
+RUN mkdir -p /run/exabgp \
+    && mkfifo /run/exabgp/exabgp.in /run/exabgp/exabgp.out \
+    && chmod 600 /run/exabgp/exabgp.in /run/exabgp/exabgp.out \
+    && chown -R exabgp:exabgp /run/exabgp
+
 COPY fetcher/fetcher.py /opt/fetcher/fetcher.py
 
 RUN chown -R exabgp:exabgp /opt/fetcher
-
-# Pre-create the run directory and named FIFO pipes (exabgp.in, exabgp.out)
-# required by ExaBGP's CLI control socket. Without these, ExaBGP logs a
-# "could not find the named pipes" warning on every start.
-RUN mkdir -p /opt/fetcher/run \
-    && mkfifo /opt/fetcher/run/exabgp.in /opt/fetcher/run/exabgp.out \
-    && chmod 600 /opt/fetcher/run/exabgp.in /opt/fetcher/run/exabgp.out \
-    && chown -R exabgp:exabgp /opt/fetcher/run
 
 USER exabgp
 

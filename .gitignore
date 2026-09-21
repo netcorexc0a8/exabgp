@@ -1,0 +1,109 @@
+## Build output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+bld/
+[Bb]in/
+[Oo]bj/
+
+## NuGet
+packages/
+*.nupkg
+*.snupkg
+.nuget/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+## .NET
+*.dotCover
+*.dotTrace
+*.swp
+*~
+
+## Visual Studio / Rider
+.idea/
+.vs/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+riderModule.iml
+_ReSharper.Caches/
+*.DotSettings.user
+*.sln.DotSettings.user
+
+## User-specific settings
+appsettings.yml
+appsettings.*.yml
+appsettings.*.json
+!appsettings.Example.yml
+
+## Data files
+*.db
+*.sqlite
+*.sqlite3
+nets.txt
+
+## Docker
+.docker/
+
+## OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+## AI / LLM / Neural networks
+.claude/
+.aider*
+.copilot/
+.cursor/
+Continue/
+.codeium/
+.sourcegraph/
+.tabby/
+.ollama/
+models/
+weights/
+checkpoints/
+*.safetensors
+*.gguf
+*.bin
+*.pt
+*.pth
+*.onnx
+*.h5
+
+## Python (if any scripts)
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+## Node (if any tooling)
+node_modules/
+
+## Logs
+*.log
+logs/
+
+## GrayMatter (local agent memory)
+.graymatter/
+
+## Claude Code local handoff notes
+.handoff/
+
+## Integration stand packet captures (docker/integration --capture)
+docker/integration/captures/
+
+test/

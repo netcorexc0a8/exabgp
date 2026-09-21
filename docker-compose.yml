@@ -1,0 +1,18 @@
+services:
+  exabgp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: exabgp
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      EXABGP_LOG_ALL: "true"
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - ./config/exabgp.conf:/etc/exabgp/exabgp.conf:ro
+      - ./config/sources.json:/etc/exabgp/sources.json:ro
+      - ./fetcher/fetcher.py:/opt/fetcher/fetcher.py:ro
+      - ./lists:/etc/exabgp/lists:ro
+      - ./state:/var/lib/exabgp
+    command: ["exabgp", "/etc/exabgp/exabgp.conf"]

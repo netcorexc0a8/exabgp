@@ -1,0 +1,43 @@
+{
+  "settings": {
+    "refresh_seconds": 300,
+    "max_total_prefixes": 10000,
+    "min_prefix_length": 8,
+    "max_prefix_length": 32,
+    "ipv4_only": true,
+    "download_timeout_seconds": 30,
+    "asn_min_peers_seeing": 10
+  },
+  "sources": [
+    {
+      "name": "github-list",
+      "type": "url",
+      "url": "https://raw.githubusercontent.com/YOUR-ORG/YOUR-REPO/main/routes.txt",
+      "max_prefixes": 5000,
+      "communities": [
+        "65001:100",
+        "no-export"
+      ]
+    },
+    {
+      "name": "local-list",
+      "type": "file",
+      "path": "/etc/exabgp/lists/local.txt",
+      "max_prefixes": 5000,
+      "communities": [
+        "65001:200"
+      ]
+    },
+    {
+      "name": "asn-example",
+      "type": "asn",
+      "asn": 15169,
+      "min_peers_seeing": 10,
+      "max_prefixes": 5000,
+      "communities": [
+        "65001:300",
+        "no-export"
+      ]
+    }
+  ]
+}

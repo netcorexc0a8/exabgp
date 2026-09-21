@@ -1,8 +1,6 @@
 services:
   exabgp:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/netcorexc0a8/exabgp:latest
     container_name: exabgp
     restart: unless-stopped
     network_mode: host

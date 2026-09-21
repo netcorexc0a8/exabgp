@@ -161,120 +161,6 @@ This is conservative behavior. If you want "source disappeared => withdraw all
 its routes", implement that as an explicit policy rather than treating every
 HTTP error as an empty list.
 
-## Start
-
-```bash
-docker compose build
-docker compose up -d
-docker compose logs -f
-```
-
-Check ExaBGP:
-
-```bash
-docker compose ps
-docker compose logs --tail=200 exabgp
-```
-
-## First test without GitHub
-
-You can test the complete chain using the included `lists/routes.txt`.
-
-From the project directory:
-
-```bash
-python3 -m http.server 8080 --directory lists
-```
-
-Then temporarily use:
-
-```json
-{
-  "settings": {
-    "refresh_seconds": 10,
-    "max_total_prefixes": 100,
-    "min_prefix_length": 8,
-    "max_prefix_length": 32,
-    "ipv4_only": true,
-    "download_timeout_seconds": 10
-  },
-  "sources": [
-    {
-      "name": "lab",
-      "url": "http://192.168.80.10:8080/routes.txt",
-      "max_prefixes": 100,
-      "communities": [
-        "65001:100",
-        "no-export"
-      ]
-    }
-  ]
-}
-```
-
-The HTTP server must be reachable from the container/host namespace.
-
-## Real GitHub source
-
-For a raw GitHub file:
-
-```json
-{
-  "name": "malware",
-  "url": "https://raw.githubusercontent.com/ORG/REPO/main/routes.txt",
-  "max_prefixes": 5000,
-  "communities": [
-    "65001:100",
-    "no-export"
-  ]
-}
-```
-
-## Multiple sources
-
-```json
-"sources": [
-  {
-    "name": "malware",
-    "url": "https://raw.githubusercontent.com/ORG/A/main/routes.txt",
-    "max_prefixes": 5000,
-    "communities": ["65001:100", "no-export"]
-  },
-  {
-    "name": "ads",
-    "url": "https://raw.githubusercontent.com/ORG/B/main/routes.txt",
-    "max_prefixes": 5000,
-    "communities": ["65001:200"]
-  },
-  {
-    "name": "custom",
-    "url": "https://raw.githubusercontent.com/ORG/C/main/routes.txt",
-    "max_prefixes": 2000,
-    "communities": ["65001:300"]
-  }
-]
-```
-
-## What ExaBGP receives
-
-For a source with:
-
-```json
-"communities": ["65001:100", "no-export"]
-```
-
-the fetcher emits:
-
-```text
-announce route 203.0.113.0/24 next-hop self community [ 65001:100 no-export ]
-```
-
-A removal emits:
-
-```text
-withdraw route 203.0.113.0/24
-```
-
 ## Important
 
 `network_mode: host` is intentional. ExaBGP must be able to establish TCP/179
@@ -283,16 +169,38 @@ to your BGP router without Docker port/NAT complications.
 Do not expose TCP/179 to untrusted networks. Use host firewalling and only allow
 the intended BGP peer(s).
 
-## Version pin
-
-The Dockerfile pins ExaBGP to `5.0.3` for reproducibility. Change
-`EXABGP_VERSION` after testing a newer release.
-
 ## Docker image
 
 A ready-to-run Docker image is built automatically on every push to `main`
 and on every tag. The image is published to the GitHub Container Registry
 (GHCR).
+
+### Prerequisites
+
+Before pulling the image, create the required directories and configuration
+files. The container mounts these paths at runtime:
+
+```bash
+mkdir -p config fetcher lists state
+```
+
+Create or edit the configuration files:
+
+```bash
+# Edit to match your BGP setup
+# config/exabgp.conf - BGP peer, local AS, timers
+# config/sources.json - sources, communities, settings
+# fetcher/fetcher.py - the Python route fetcher
+```
+
+If you want to use local prefix lists, place them in `lists/`:
+
+```bash
+# Example: one IPv4 CIDR per line, blank lines and # comments allowed
+echo "203.0.113.0/24" > lists/local.txt
+```
+
+The `state/` directory persists ExaBGP runtime state between restarts.
 
 ### Pull the latest image
 
@@ -300,27 +208,7 @@ and on every tag. The image is published to the GitHub Container Registry
 docker pull ghcr.io/netcorexc0a8/exabgp:latest
 ```
 
-### Run with the published image
-
-```bash
-docker run -d \
-  --name exabgp \
-  --network host \
-  -v "$(pwd)/config/exabgp.conf:/etc/exabgp/exabgp.conf:ro" \
-  -v "$(pwd)/config/sources.json:/etc/exabgp/sources.json:ro" \
-  -v "$(pwd)/fetcher/fetcher.py:/opt/fetcher/fetcher.py:ro" \
-  -v "$(pwd)/lists:/etc/exabgp/lists:ro" \
-  -v "$(pwd)/state:/var/lib/exabgp" \
-  ghcr.io/netcorexc0a8/exabgp:latest
-```
-
-The image uses `network_mode: host` intentionally — see the Important section
-below for details.
-
 ### Run with docker compose
-
-The local `docker-compose.yml` builds the image from the current directory.
-To run the published image instead, point the compose file at GHCR:
 
 ```bash
 docker compose pull
@@ -334,7 +222,6 @@ Override the image in `docker-compose.yml`:
 services:
   exabgp:
     image: ghcr.io/netcorexc0a8/exabgp:latest
-    build: null
     container_name: exabgp
     restart: unless-stopped
     network_mode: host
@@ -359,6 +246,20 @@ docker compose up -d --build
 To use a specific tag, replace `latest` with the desired tag (for example
 `v1.0.0` or `sha-a1b2c3d`).
 
+### Run with docker run
+
+```bash
+docker run -d \
+  --name exabgp \
+  --network host \
+  -v "$(pwd)/config/exabgp.conf:/etc/exabgp/exabgp.conf:ro" \
+  -v "$(pwd)/config/sources.json:/etc/exabgp/sources.json:ro" \
+  -v "$(pwd)/fetcher/fetcher.py:/opt/fetcher/fetcher.py:ro" \
+  -v "$(pwd)/lists:/etc/exabgp/lists:ro" \
+  -v "$(pwd)/state:/var/lib/exabgp" \
+  ghcr.io/netcorexc0a8/exabgp:latest
+```
+
 ### Build workflow
 
 The build is defined in `.github/workflows/build-image.yml`. It triggers on:
@@ -378,3 +279,8 @@ The workflow uses the default `GITHUB_TOKEN` secret, so no extra
 configuration is required. If you want to use the image from a private
 repository, make sure the `packages: write` permission is granted (it is
 set in the workflow file).
+
+## Version pin
+
+The Dockerfile pins ExaBGP to `5.0.3` for reproducibility. Change
+`EXABGP_VERSION` after testing a newer release.

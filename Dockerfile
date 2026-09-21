@@ -10,7 +10,8 @@ RUN pip install --no-cache-dir "exabgp==${EXABGP_VERSION}" \
     && mkfifo /opt/fetcher/run/exabgp.in \
     && mkfifo /opt/fetcher/run/exabgp.out \
     && chown -R exabgp:exabgp /opt/fetcher/run \
-    && chmod 600 /opt/fetcher/run/exabgp.{in,out}
+    && chmod 600 /opt/fetcher/run/exabgp.in \
+    && chmod 600 /opt/fetcher/run/exabgp.out
 
 USER exabgp
 WORKDIR /opt/fetcher

@@ -1,4 +1,4 @@
-# ExaBGP + Python GitHub route fetcher lab
+# ExaBGP + Python route fetcher lab
 
 This lab fetches IPv4 CIDR lists from HTTP(S), validates them, assigns
 BGP standard communities per source, merges duplicate prefixes, and
@@ -6,7 +6,7 @@ announces/withdraws them through ExaBGP.
 
 ## Architecture
 
-GitHub raw URLs -> Python fetcher -> ExaBGP -> your BGP router
+raw URLs -> Python fetcher -> ExaBGP -> your BGP router
 
 No router configuration is included.
 

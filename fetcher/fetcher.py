@@ -62,6 +62,44 @@ def validate_community(value: str) -> str:
     return f"{asn_i}:{number_i}"
 
 
+def validate_aggregate(value) -> dict | None:
+    """
+    Optional per-source prefix aggregation, applied after parsing and
+    before the max_prefixes/max_total_prefixes checks.
+
+    {"mode": "safe"}
+        Losslessly merge only exactly-contiguous prefixes
+        (ipaddress.collapse_addresses). Never widens the announced
+        address space beyond what the source actually listed.
+
+    {"mode": "threshold", "prefix_len": 24, "threshold": 8}
+        Collapse any /prefix_len network containing >= threshold
+        prefixes from this source into a single supernet.
+        WARNING: this announces addresses that were NOT in the
+        source (every other host in that network). Only use it where
+        the resulting false-positive risk is acceptable.
+    """
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise ValueError(f"invalid aggregate config: {value!r}")
+
+    mode = value.get("mode", "safe")
+    if mode not in ("safe", "threshold"):
+        raise ValueError(f"invalid aggregate mode: {mode!r}")
+
+    prefix_len = int(value.get("prefix_len", 24))
+    threshold = int(value.get("threshold", 8))
+
+    if mode == "threshold":
+        if not (0 < prefix_len <= 32):
+            raise ValueError(f"invalid aggregate prefix_len: {prefix_len!r}")
+        if threshold < 1:
+            raise ValueError(f"invalid aggregate threshold: {threshold!r}")
+
+    return {"mode": mode, "prefix_len": prefix_len, "threshold": threshold}
+
+
 def load_sources(config: dict) -> list[dict]:
     sources = config.get("sources", [])
     if not sources:
@@ -92,6 +130,8 @@ def load_sources(config: dict) -> list[dict]:
         source["communities"] = [
             validate_community(c) for c in communities
         ]
+
+        source["aggregate"] = validate_aggregate(source.get("aggregate"))
 
     return sources
 
@@ -212,6 +252,62 @@ def parse_prefixes(
     return result
 
 
+def aggregate_prefixes(
+    name: str,
+    prefixes: Set[str],
+    agg_conf: dict,
+) -> Set[str]:
+    """
+    Reduce the number of announced prefixes for a source, per its
+    validated "aggregate" config (see validate_aggregate).
+    """
+    networks = [ipaddress.ip_network(p) for p in prefixes]
+    before = len(networks)
+    mode = agg_conf["mode"]
+
+    if mode == "safe":
+        result_networks = list(ipaddress.collapse_addresses(networks))
+
+    else:  # "threshold"
+        prefix_len = agg_conf["prefix_len"]
+        threshold = agg_conf["threshold"]
+
+        buckets: Dict[ipaddress.IPv4Network, list] = {}
+        already_wide: list = []
+
+        for network in networks:
+            if network.prefixlen <= prefix_len:
+                # Source already contains something as wide as (or
+                # wider than) the target - nothing to bucket it into.
+                already_wide.append(network)
+                continue
+            supernet = network.supernet(new_prefix=prefix_len)
+            buckets.setdefault(supernet, []).append(network)
+
+        result_networks = list(already_wide)
+        for supernet, members in buckets.items():
+            if len(members) >= threshold:
+                result_networks.append(supernet)
+            else:
+                result_networks.extend(members)
+
+        # Also collapses any /32 that ends up covered by a wider
+        # network already present in the source (overlap safety).
+        result_networks = list(ipaddress.collapse_addresses(result_networks))
+
+    result = {str(n) for n in result_networks}
+
+    after = len(result)
+    if after != before:
+        reduction = 100 * (1 - after / before) if before else 0.0
+        log(
+            f"source={name}: aggregate mode={mode} "
+            f"{before} -> {after} prefixes ({reduction:.1f}% fewer)"
+        )
+
+    return result
+
+
 def fetch_source(
     source: dict,
     settings: dict,
@@ -265,6 +361,9 @@ def fetch_source(
             f"{type(exc).__name__}: {exc}"
         )
         return None
+
+    if prefixes and source["aggregate"]:
+        prefixes = aggregate_prefixes(name, prefixes, source["aggregate"])
 
     limit = int(
         source.get(

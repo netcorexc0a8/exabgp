@@ -144,6 +144,50 @@ The resulting announcement contains:
 If a prefix's community set changes, the fetcher withdraws the old path
 and re-announces it with the new attributes.
 
+## Aggregation
+
+Any source (`url`, `file`, or `asn`) can set an optional `aggregate`
+object. It runs after parsing and before the `max_prefixes` /
+`max_total_prefixes` checks, so a large feed can be brought under its
+limit instead of being rejected outright.
+
+Two modes:
+
+```json
+{
+  "name": "hourly-threat-ipv4",
+  "type": "url",
+  "url": "https://raw.githubusercontent.com/example/feed/main/hourlyIPv4.txt",
+  "max_prefixes": 150000,
+  "communities": ["65001:100", "no-export"],
+  "aggregate": { "mode": "safe" }
+}
+```
+
+`"mode": "safe"` losslessly merges only exactly-contiguous prefixes
+(no address is announced that wasn't already in the source). Reduction
+depends entirely on how contiguous the feed's addresses happen to be.
+
+```json
+{
+  "name": "hourly-threat-ipv4",
+  "type": "url",
+  "url": "https://raw.githubusercontent.com/example/feed/main/hourlyIPv4.txt",
+  "max_prefixes": 100000,
+  "communities": ["65001:100", "no-export"],
+  "aggregate": { "mode": "threshold", "prefix_len": 24, "threshold": 8 }
+}
+```
+
+`"mode": "threshold"` collapses any `/prefix_len` network containing
+`>= threshold` prefixes from that source into a single supernet.
+**This announces addresses that were not in the source** (every other
+host in that network) - only use it where that false-positive risk is
+acceptable, e.g. RTBH feeds where you'd rather over-block a noisy
+subnet than run tens of thousands of individual `/32` routes.
+
+A source with no `aggregate` key behaves exactly as before.
+
 ## Safety behavior
 
 The fetcher intentionally fails closed:

@@ -213,6 +213,97 @@ to your BGP router without Docker port/NAT complications.
 Do not expose TCP/179 to untrusted networks. Use host firewalling and only allow
 the intended BGP peer(s).
 
+## Install ExaBGP binary (without Docker)
+
+### Via install script (recommended)
+
+The included `install-exabgp.sh` resolves the latest release tag from the
+repository, so you always get the newest version. Re-run the script after a
+new tag is pushed to upgrade.
+
+```bash
+# Install latest release
+curl -fsSL https://raw.githubusercontent.com/exabgp/exabgp/main/install-exabgp.sh \
+    -o /tmp/install-exabgp.sh
+chmod +x /tmp/install-exabgp.sh
+sudo /tmp/install-exabgp.sh
+
+# Or install a specific version
+sudo /tmp/install-exabgp.sh 5.0.3
+```
+
+### Manual install
+
+Pre-built binaries are available from the ExaBGP GitHub releases page:
+
+```bash
+# Replace VERSION with the desired release, e.g. 5.0.3
+VERSION=5.0.3
+
+# Download and install
+curl -L "https://github.com/exabgp/exabgp/releases/download/v${VERSION}/exabgp_${VERSION}_linux_amd64.tar.gz" \
+    -o /tmp/exabgp.tar.gz
+tar -xzf /tmp/exabgp.tar.gz -C /tmp
+sudo cp /tmp/exabgp /usr/local/bin/exabgp
+sudo chmod +x /usr/local/bin/exabgp
+
+# Verify
+exabgp --version
+```
+
+### Debian/Ubuntu
+
+```bash
+VERSION=5.0.3
+wget "https://github.com/exabgp/exabgp/releases/download/v${VERSION}/exabgp_${VERSION}_linux_amd64.tar.gz" -O /tmp/exabgp.tar.gz
+tar -xzf /tmp/exabgp.tar.gz -C /tmp
+sudo cp /tmp/exabgp /usr/local/bin/exabgp
+```
+
+### Create the exabgp user
+
+```bash
+sudo useradd --system --uid 10001 --create-home exabgp
+```
+
+### Create named pipes
+
+ExaBGP CLI mode requires named pipes:
+
+```bash
+sudo mkdir -p /opt/fetcher/run
+sudo mkfifo /opt/fetcher/run/exabgp.in
+sudo mkfifo /opt/fetcher/run/exabgp.out
+sudo chown -R exabgp:exabgp /opt/fetcher/run
+sudo chmod 600 /opt/fetcher/run/exabgp.in /opt/fetcher/run/exabgp.out
+```
+
+### Configure
+
+Place your files:
+
+```bash
+sudo mkdir -p /etc/exabgp
+sudo cp config/exabgp.conf /etc/exabgp/exabgp.conf
+sudo cp config/sources.json /etc/exabgp/sources.json
+sudo cp fetcher/fetcher.py /opt/fetcher/fetcher.py
+sudo chown -R exabgp:exabgp /etc/exabgp /opt/fetcher
+```
+
+### Run
+
+```bash
+sudo -u exabgp exabgp /etc/exabgp/exabgp.conf
+```
+
+Or as a systemd service (optional):
+
+```bash
+sudo cp exabgp.service /etc/systemd/system/exabgp.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now exabgp
+```
+
 ## Docker image
 
 A ready-to-run Docker image is built automatically on every push to `main`

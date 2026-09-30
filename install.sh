@@ -1,27 +1,25 @@
 #!/bin/bash
 #
-# install-exabgp.sh — install ExaBGP from GitHub releases
+# install.sh — install ExaBGP from GitHub releases
 #
 # Usage:
-#   ./install-exabgp.sh              # install latest release
-#   ./install-exabgp.sh 5.0.3       # install specific version
-#   ./install-exabgp.sh latest       # same as no argument
+#   curl -fsSL https://github.com/OWNER/REPO/releases/latest/download/install.sh | sudo sh
+#   curl -fsSLO https://github.com/OWNER/REPO/releases/latest/download/install.sh && sudo sh install.sh v5.0.3
 #
-# The script resolves the tag in the repository, so you can use it to
-# always install the newest release. Run it again after a new tag is
-# pushed to upgrade.
+# If no version is given, the script resolves the latest release tag
+# from the repository. Pass a specific version to install that release.
 #
-# Requirements: curl, tar, sudo/root
+# Requirements: curl, tar, root/sudo
 
 set -euo pipefail
 
-REPO="exabgp/exabgp"
+REPO="netcorexc0a8/exabgp"
 VERSION="${1:-latest}"
 
 # Detect architecture
 case "$(uname -m)" in
     x86_64|amd64)   ARCH="amd64" ;;
-    aarch64|arm64)   ARCH="arm64" ;;
+    aarch64|arm64)  ARCH="arm64" ;;
     i386|i486|i586|i686|x86) ARCH="386" ;;
     *)
         echo "ERROR: unsupported architecture $(uname -m)" >&2
@@ -60,13 +58,8 @@ fi
 tar -xzf "${TMPDIR}/exabgp.tar.gz" -C "${TMPDIR}"
 
 # Install
-if [ "$(id -u)" -ne 0 ]; then
-    sudo cp "${TMPDIR}/exabgp" /usr/local/bin/exabgp
-    sudo chmod +x /usr/local/bin/exabgp
-else
-    cp "${TMPDIR}/exabgp" /usr/local/bin/exabgp
-    chmod +x /usr/local/bin/exabgp
-fi
+cp "${TMPDIR}/exabgp" /usr/local/bin/exabgp
+chmod +x /usr/local/bin/exabgp
 
 echo "ExaBGP ${TAG} (${ARCH}) installed to /usr/local/bin/exabgp"
 exabgp --version

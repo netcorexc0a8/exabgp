@@ -220,20 +220,17 @@ GitHub Release page contains the tarball for the latest version.
 
 ### Via install script (recommended)
 
-The included `install-exabgp.sh` resolves the latest release tag from the
-repository, so you always get the newest version. Re-run the script after a
-new tag is pushed to upgrade.
-
 ```bash
 # Install latest release
-curl -fsSL https://raw.githubusercontent.com/exabgp/exabgp/main/install-exabgp.sh \
-    -o /tmp/install-exabgp.sh
-chmod +x /tmp/install-exabgp.sh
-sudo /tmp/install-exabgp.sh
+curl -fsSL https://github.com/netcorexc0a8/exabgp/releases/latest/download/install.sh | sudo sh
 
 # Or install a specific version
-sudo /tmp/install-exabgp.sh 5.0.3
+curl -fsSLO https://github.com/netcorexc0a8/exabgp/releases/latest/download/install.sh
+sudo sh install.sh v5.0.3
 ```
+
+The script auto-detects architecture (amd64, arm64, 386) and resolves the
+latest release tag when no version is given.
 
 ### Manual install
 

@@ -225,20 +225,17 @@ TCP/179 к вашему BGP-маршрутизатору без проблем D
 
 ### Через скрипт установки (рекомендуется)
 
-Прилагаемый `install-exabgp.sh` определяет последний тег релиза в
-репозитории, поэтому вы всегда получаете новейшую версию. Запускайте
-скрипт снова после пуша нового тега, чтобы обновиться.
-
 ```bash
 # Установить последний релиз
-curl -fsSL https://raw.githubusercontent.com/exabgp/exabgp/main/install-exabgp.sh \
-    -o /tmp/install-exabgp.sh
-chmod +x /tmp/install-exabgp.sh
-sudo /tmp/install-exabgp.sh
+curl -fsSL https://github.com/netcorexc0a8/exabgp/releases/latest/download/install.sh | sudo sh
 
 # Или установить конкретную версию
-sudo /tmp/install-exabgp.sh 5.0.3
+curl -fsSLO https://github.com/netcorexc0a8/exabgp/releases/latest/download/install.sh
+sudo sh install.sh v5.0.3
 ```
+
+Скрипт автоматически определяет архитектуру (amd64, arm64, 386) и,
+если версия не указана, резолвит последний тег релиза.
 
 ### Ручная установка
 

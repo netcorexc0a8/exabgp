@@ -107,3 +107,4 @@ logs/
 docker/integration/captures/
 
 test/
+.kilo/

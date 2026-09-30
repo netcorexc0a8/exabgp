@@ -215,6 +215,9 @@ the intended BGP peer(s).
 
 ## Install ExaBGP binary (without Docker)
 
+Pre-built binaries are published automatically on every tag push. The
+GitHub Release page contains the tarball for the latest version.
+
 ### Via install script (recommended)
 
 The included `install-exabgp.sh` resolves the latest release tag from the
